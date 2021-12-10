@@ -25,7 +25,9 @@ impl TryFrom<&str> for ImageSpec {
   type Error = anyhow::Error;
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
+    // println!("try_from, value, {}", value);
     let data = decode_config(value, URL_SAFE_NO_PAD)?;
+    // println!("data: {}", data);
     Ok(ImageSpec::decode(&data[..])?)
 
   }
