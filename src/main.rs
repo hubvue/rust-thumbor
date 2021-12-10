@@ -28,6 +28,10 @@ mod pb;
 
 use pb::*;
 
+mod engine;
+use engine::{Engine, Photon};
+use image::ImageOutputFormat;
+
 // 参数使用serde 做DEserialize， axum会自动识别并解析
 #[derive(Deserialize)]
 struct Params {
@@ -74,7 +78,7 @@ async fn main() {
 // 目前我们就只把参数解析出来
 async fn generate(Path( Params { spec, url}): Path<Params>, Extension(cache): Extension<Cache>) -> Result<(HeaderMap, Vec<u8>), StatusCode> {
     
-    let _spec: ImageSpec = spec
+    let spec: ImageSpec = spec
         .as_str()
         .try_into()
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -86,11 +90,16 @@ async fn generate(Path( Params { spec, url}): Path<Params>, Extension(cache): Ex
         .map_err(|_| StatusCode::BAD_REQUEST)?;
     
     // TODO: 处理图片
+    // 使用image engine 处理
+    let mut engine: Photon = data
+        .try_into()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    engine.apply(&spec.specs);
+    let image = engine.generate(ImageOutputFormat::Jpeg(85));
     let mut headers = HeaderMap::new();
     headers.insert("content-type", HeaderValue::from_static("image/jpeg"));
-    
-    // Ok(format!("url: {}\nspec: {:#?}", url, spec)
-    Ok((headers, data.to_vec()))
+    Ok((headers, image))
 }
 
 #[instrument(level = "info", skip(cache))]
